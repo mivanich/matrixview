@@ -5,36 +5,39 @@ import java.util.Random;
 import java.util.stream.IntStream;
 
 public class SymbolLine {
+    private static final int NUM_SYMBOLS_IN_ROW = 40;
+
     private static final Random rnd = new Random();
 
     private final String[] symbols;
     private final int x;
-    private final int startY;
+    private double y;
     private final int fontSize;
     private final Font font;
-    private double pos;
     private int symbolPointer = 0;
 
-    private final CharInRow[] positionedChars = new CharInRow[20];
+    private final long updateIntervalMs;
+    private long lastUpdateTime;
 
-    private SymbolLine(String[] symbols, int startX, int startY, int fontSize) {
+    private final CharInRow[] positionedChars = new CharInRow[NUM_SYMBOLS_IN_ROW];
+
+    private SymbolLine(String[] symbols, int startX, int fontSize) {
         this.symbols = symbols;
         this.x = startX;
-        this.startY = startY;
-        this.pos = startY;
+        this.y = genRandomVerticalShift(fontSize);
         this.fontSize = fontSize;
         this.font = new Font("TimesRoman", Font.PLAIN, fontSize);
+        this.lastUpdateTime = System.currentTimeMillis();
+        this.updateIntervalMs = 100; //+ rnd.nextInt(300);
     }
 
-    public static SymbolLine generate(int startX, int startY, int fontSize) {
-        Random rnd = new Random();
+    public static SymbolLine generate(int startX, int fontSize) {
         String[] symbols = IntStream
                 .iterate(0, i -> i + 1)
-                .limit(20)
-//                .mapToObj(ignore -> "S")
-                .mapToObj(ignore -> genSymbol(rnd))
+                .limit(NUM_SYMBOLS_IN_ROW)
+                .mapToObj(ignore -> genSymbol())
                 .toArray(String[]::new);
-        return new SymbolLine(symbols, startX, startY, fontSize);
+        return new SymbolLine(symbols, startX, fontSize);
     }
 
     /*
@@ -48,29 +51,27 @@ public class SymbolLine {
         CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
         CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
      */
-    private static String genSymbol(Random rnd) {
+    private static String genSymbol() {
         /*int code = rnd.nextInt(512) + 33;
         if (code >= 127 && code <= 161) code += 34;
         char ch = (char) code;
 //        return ch + "=" + code;
         return String.valueOf(ch);*/
+
         int rangeStart = 0x2B820;
         int rangeEnd = 0x2CEAF;
-
-//        int code = rnd.nextInt(0x9FFF - 0x4E00) + 0x4E00;
         int code = rnd.nextInt(rangeEnd - rangeStart) + rangeStart;
         char ch = (char) code;
         return String.valueOf(ch);
-//    0x4E00-0x9FFFh
     }
 
     private void drawHead(Graphics g) {
         Color symbolColor = new Color(174, 255, 174);
         g.setColor(symbolColor);
-        String sym = genSymbol(rnd);
+        String sym = genSymbol();
 
-        g.drawString(sym, x, (int) (pos));
-        positionedChars[symbolPointer] = new CharInRow(x, (int) pos, sym);
+        g.drawString(sym, x, (int) (y));
+        positionedChars[symbolPointer] = new CharInRow(x, (int) y, sym);
     }
 
     private void drawBody(Graphics g) {
@@ -134,21 +135,38 @@ public class SymbolLine {
         }
     }
 
+    private void updateVisibleSymbolIfTime() {
+        long time = System.currentTimeMillis();
+        if (time - lastUpdateTime > updateIntervalMs) {
+            int ind = rnd.nextInt(positionedChars.length);
+            var prev = positionedChars[ind];
+            if (prev != null) {
+                var newChar = new CharInRow(prev.x(), prev.y(), genSymbol());
+                positionedChars[ind] = newChar;
+            }
+            lastUpdateTime = time;
+        }
+    }
+
     public void updateAndDraw(Graphics g) {
         g.setFont(font);
 
+        updateVisibleSymbolIfTime();
         drawHead(g);
         drawBody(g);
         drawTail(g);
 
-        this.pos += fontSize;
+        this.y += fontSize;
         this.symbolPointer = (symbolPointer + 1) % symbols.length;
 
         double screenHeight = Toolkit.getDefaultToolkit().getScreenSize().getHeight();
-        boolean outOfScreen = pos - fontSize * 1.1 > screenHeight;
+        boolean outOfScreen = y - fontSize * 1.1 > screenHeight;
         if (outOfScreen) {
-            this.pos = startY;
-//            this.speed = new Random().nextDouble() + 0.1d;
+            this.y = genRandomVerticalShift(fontSize);
         }
+    }
+
+    public static int genRandomVerticalShift(int fontSize) {
+        return -rnd.nextInt(160) * fontSize;
     }
 }
