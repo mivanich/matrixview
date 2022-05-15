@@ -8,77 +8,86 @@ import java.util.stream.IntStream;
 import java.util.List;
 
 public class MatrixChars {
+        private final static int NUM_BUFFERS = 2;
+    
     private volatile boolean escKeyPressed = false;
-    private volatile Color bgColor = Color.black;
+    private final List<SymbolLine> lines;
+    private final Frame mainFrame;
+    private final GraphicsDevice device;
 
-    public MatrixChars(int numBuffers, GraphicsDevice device) {
+    private MatrixChars(GraphicsDevice device) {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this::dispatchKeyEvent);
 
+        this.device = device;
+
+        GraphicsConfiguration gc = device.getDefaultConfiguration();
+        mainFrame = new Frame(gc);
+        mainFrame.setUndecorated(true);
+        mainFrame.setIgnoreRepaint(true);
+
+        int baseFontSize = 18;
+
+        double screenWidth = Toolkit.getDefaultToolkit().getScreenSize().getWidth();
+        int numLines = (int) (screenWidth / baseFontSize);
+        System.out.println("Number of lines: " + numLines);
+        Random rnd = new Random();
+        lines = IntStream.iterate(0, i -> i + 1)
+                .limit(numLines)
+                .mapToObj(i -> {
+                    int lineX = 5 + i * (baseFontSize + 10); //+ (i * baseFontSize );
+                    int lineY = -rnd.nextInt(40) * baseFontSize;
+                    int fontSize = baseFontSize + rnd.nextInt(8);
+                    return SymbolLine.generate(lineX, lineY, fontSize);
+                }).toList();
+    }
+
+    public void start() throws InterruptedException {
+        device.setFullScreenWindow(mainFrame);
+        mainFrame.createBufferStrategy(NUM_BUFFERS);
+
+        BufferStrategy bufferStrategy = mainFrame.getBufferStrategy();
+        Rectangle bounds = mainFrame.getBounds();
         try {
-            GraphicsConfiguration gc = device.getDefaultConfiguration();
-            Frame mainFrame = new Frame(gc);
-            mainFrame.setUndecorated(true);
-            mainFrame.setIgnoreRepaint(true);
-            device.setFullScreenWindow(mainFrame);
-
-            Rectangle bounds = mainFrame.getBounds();
-            mainFrame.createBufferStrategy(numBuffers);
-            BufferStrategy bufferStrategy = mainFrame.getBufferStrategy();
-
-            int x = 100;
-            int y = -40;
-            Color prevColor = bgColor;
-
-            int baseFontSize = 25;
-            int numLines = bounds.width / baseFontSize;
-            System.out.println("Number of lines: " + numLines);
-            Random rnd = new Random();
-            List<SymbolLine> lines = IntStream.iterate(0, i -> i + 1)
-                    .limit(numLines)
-                    .mapToObj(i -> {
-                        int lineX = 5 + i * (baseFontSize); // + (i + 1) * baseFontSize; //(i * x) + (rnd.nextInt(x - 10) + 10);
-                        int lineY = -rnd.nextInt(40) * baseFontSize;
-                        int fontSize = baseFontSize + rnd.nextInt(8);
-                        double speed = rnd.nextDouble() + 0.1d;
-                        return SymbolLine.generate(lineX, lineY, fontSize, bounds, speed);
-                    }).toList();
-
             while (!escKeyPressed) {
                 Graphics g = bufferStrategy.getDrawGraphics();
                 g.setColor(Color.black);
-                g.fillRect(0,0,bounds.width, bounds.height);
+                g.fillRect(0, 0, bounds.width, bounds.height);
                 lines.forEach(line -> line.updateAndDraw(g));
                 bufferStrategy.show();
                 g.dispose();
 
                 Thread.sleep(90);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             device.setFullScreenWindow(null);
         }
     }
 
+    public static MatrixChars create() {
+        GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice device = env.getDefaultScreenDevice();
+        int numBuffers = 2;
+        return new MatrixChars(device);
+    }
+
     private boolean dispatchKeyEvent(KeyEvent event) {
-        switch (event.getID()) {
+        /*switch (event.getID()) {
             case KeyEvent.KEY_RELEASED:
                 if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     escKeyPressed = true;
                     return true;
                 }
-        }
-        return false;
+        }*/
+        escKeyPressed = true;
+        return true;
     }
 
     public static void main(String[] args) {
         try {
-            int numBuffers = 2;
-            GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            GraphicsDevice device = env.getDefaultScreenDevice();
-            MatrixChars test = new MatrixChars(numBuffers, device);
+            MatrixChars.create().start();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.exit(0);
     }
 }
