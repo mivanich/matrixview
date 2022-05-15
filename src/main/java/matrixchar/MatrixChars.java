@@ -10,11 +10,13 @@ import java.util.List;
 public class MatrixChars {
     private final static int NUM_BUFFERS = 2;
     private final static int ROW_MARGIN = 5;
-    
-    private volatile boolean escKeyPressed = false;
+
     private final List<SymbolLine> lines;
     private final Frame mainFrame;
     private final GraphicsDevice device;
+
+    private boolean escKeyPressed = false;
+    private boolean pauseKeyPressed = false;
 
     private MatrixChars(GraphicsDevice device) {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this::dispatchKeyEvent);
@@ -30,7 +32,6 @@ public class MatrixChars {
 
         double screenWidth = Toolkit.getDefaultToolkit().getScreenSize().getWidth();
         int numLines = (int) (screenWidth / (baseFontSize + ROW_MARGIN));
-        System.out.println("Number of lines: " + numLines);
         Random rnd = new Random();
         lines = IntStream.iterate(0, i -> i + 1)
                 .limit(numLines)
@@ -53,12 +54,14 @@ public class MatrixChars {
         Rectangle bounds = mainFrame.getBounds();
         try {
             while (!escKeyPressed) {
-                Graphics g = bufferStrategy.getDrawGraphics();
-                g.setColor(Color.black);
-                g.fillRect(0, 0, bounds.width, bounds.height);
-                lines.forEach(line -> line.updateAndDraw(g));
-                bufferStrategy.show();
-                g.dispose();
+                if (!pauseKeyPressed) {
+                    Graphics g = bufferStrategy.getDrawGraphics();
+                    g.setColor(Color.black);
+                    g.fillRect(0, 0, bounds.width, bounds.height);
+                    lines.forEach(line -> line.updateAndDraw(g));
+                    bufferStrategy.show();
+                    g.dispose();
+                }
                 sleep();
             }
         } finally {
@@ -73,15 +76,16 @@ public class MatrixChars {
     }
 
     private boolean dispatchKeyEvent(KeyEvent event) {
-        /*switch (event.getID()) {
+        switch (event.getID()) {
             case KeyEvent.KEY_RELEASED:
-                if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    escKeyPressed = true;
+                if (event.getKeyCode() == KeyEvent.VK_PAUSE) {
+                    pauseKeyPressed = !pauseKeyPressed;
                     return true;
                 }
-        }*/
-        escKeyPressed = true;
-        return true;
+                escKeyPressed = true;
+                return true;
+        }
+        return false;
     }
 
     public static void main(String[] args) {

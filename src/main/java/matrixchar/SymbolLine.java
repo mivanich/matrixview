@@ -14,7 +14,7 @@ public class SymbolLine {
     private double y;
     private final int fontSize;
     private final Font font;
-    private int symbolPointer = 0;
+    private int headPosition = 0;
 
     private final long updateIntervalMs;
     private long lastUpdateTime;
@@ -28,7 +28,7 @@ public class SymbolLine {
         this.fontSize = fontSize;
         this.font = new Font("TimesRoman", Font.PLAIN, fontSize);
         this.lastUpdateTime = System.currentTimeMillis();
-        this.updateIntervalMs = 100; //+ rnd.nextInt(300);
+        this.updateIntervalMs = 100;
     }
 
     public static SymbolLine generate(int startX, int fontSize) {
@@ -71,14 +71,14 @@ public class SymbolLine {
         String sym = genSymbol();
 
         g.drawString(sym, x, (int) (y));
-        positionedChars[symbolPointer] = new CharInRow(x, (int) y, sym);
+        positionedChars[headPosition] = new CharInRow(x, (int) y, sym);
     }
 
     private void drawBody(Graphics g) {
         Color symbolColor = new Color(44, 128, 35);
         g.setColor(symbolColor);
         for (int i = 0; i < positionedChars.length; i++) {
-            if (positionedChars[i] != null && i != symbolPointer) {
+            if (positionedChars[i] != null && i != headPosition) {
                 CharInRow ch = positionedChars[i];
                 g.drawString(ch.s(), ch.x(), ch.y());
             }
@@ -86,7 +86,7 @@ public class SymbolLine {
 
         symbolColor = new Color(0, 255, 0);
         g.setColor(symbolColor);
-        int ind = (positionedChars.length + symbolPointer - 1) % positionedChars.length;
+        int ind = (positionedChars.length + headPosition - 1) % positionedChars.length;
         if (positionedChars[ind] != null) {
             CharInRow ch = positionedChars[ind];
             g.drawString(ch.s(), ch.x(), ch.y());
@@ -94,44 +94,25 @@ public class SymbolLine {
     }
 
     private void drawTail(Graphics g) {
-        Color symbolColor = new Color(0, 64, 0);
-        g.setColor(symbolColor);
+        int bodyLen = positionedChars.length;
+        int tailLen = bodyLen * 2 / 3;
+        int tailStartPos = (headPosition + tailLen) % bodyLen + 1;
 
-        int startPosition = symbolPointer % positionedChars.length;
-        for (int k = 6; k < 9; k++) {
-            int ind = (startPosition + k + 1) % positionedChars.length;
-            if (positionedChars[ind] != null && ind != symbolPointer) {
-                CharInRow ch = positionedChars[ind];
+        double startGreen = 128.0;
+        double endGreen = 8.0;
+        double step = (startGreen - endGreen) / tailLen;
+
+        double green = startGreen;
+        for (int i = bodyLen; i >= (bodyLen - tailLen); i--) {
+            Color symbolColor = new Color(0, (int) (green), 0);
+            green -= step;
+            g.setColor(symbolColor);
+
+            int tailIndex = (tailStartPos + i) % bodyLen;
+            CharInRow ch = positionedChars[tailIndex];
+            if (ch != null) {
                 g.drawString(ch.s(), ch.x(), ch.y());
             }
-        }
-
-        symbolColor = new Color(0, 32, 0);
-        g.setColor(symbolColor);
-        for (int k = 3; k < 6; k++) {
-            int ind = (startPosition + k + 1) % positionedChars.length;
-            if (positionedChars[ind] != null && ind != symbolPointer) {
-                CharInRow ch = positionedChars[ind];
-                g.drawString(ch.s(), ch.x(), ch.y());
-            }
-        }
-
-        symbolColor = new Color(0, 16, 0);
-        g.setColor(symbolColor);
-        for (int k = 0; k < 3; k++) {
-            int ind = (startPosition + k + 1) % positionedChars.length;
-            if (positionedChars[ind] != null && ind != symbolPointer) {
-                CharInRow ch = positionedChars[ind];
-                g.drawString(ch.s(), ch.x(), ch.y());
-            }
-        }
-
-        symbolColor = new Color(0, 8, 0);
-        g.setColor(symbolColor);
-        int ind = (startPosition + 1) % positionedChars.length;
-        if (positionedChars[ind] != null && ind != symbolPointer) {
-            CharInRow ch = positionedChars[ind];
-            g.drawString(ch.s(), ch.x(), ch.y());
         }
     }
 
@@ -157,7 +138,7 @@ public class SymbolLine {
         drawTail(g);
 
         this.y += fontSize;
-        this.symbolPointer = (symbolPointer + 1) % symbols.length;
+        this.headPosition = (headPosition + 1) % symbols.length;
 
         double screenHeight = Toolkit.getDefaultToolkit().getScreenSize().getHeight();
         boolean outOfScreen = y - fontSize * 1.1 > screenHeight;
@@ -167,6 +148,6 @@ public class SymbolLine {
     }
 
     public static int genRandomVerticalShift(int fontSize) {
-        return -rnd.nextInt(160) * fontSize;
+        return -rnd.nextInt(240) * fontSize;
     }
 }
