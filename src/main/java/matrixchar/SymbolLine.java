@@ -5,15 +5,24 @@ import java.util.Random;
 import java.util.stream.IntStream;
 
 public class SymbolLine {
+    record CharInRow (int x, int y, String s) {}
+
+    private static final Color HEAD_COLOR = new Color(174, 255, 174);
+    private static final Color BODY_COLOR = new Color(44, 128, 35);
+    private static final Color BRIGHT_BODY_COLOR = new Color(0, 255, 0);
+
+    private static final int VERTICAL_POS_START_VARIANCE = 240;
     private static final int NUM_SYMBOLS_IN_ROW = 40;
+    private static final long DELAY_SYMBOL_UPDATE_INTERVAL_MS = 100;
+    private static final String FONT_NAME = "TimesRoman";
 
     private static final Random rnd = new Random();
 
+    private final int fontSize;
+    private final Font font;
     private final String[] symbols;
     private final int x;
     private double y;
-    private final int fontSize;
-    private final Font font;
     private int headPosition = 0;
 
     private final long updateIntervalMs;
@@ -26,9 +35,9 @@ public class SymbolLine {
         this.x = startX;
         this.y = genRandomVerticalShift(fontSize);
         this.fontSize = fontSize;
-        this.font = new Font("TimesRoman", Font.PLAIN, fontSize);
+        this.font = new Font(FONT_NAME, Font.PLAIN, fontSize);
         this.lastUpdateTime = System.currentTimeMillis();
-        this.updateIntervalMs = 100;
+        this.updateIntervalMs = DELAY_SYMBOL_UPDATE_INTERVAL_MS;
     }
 
     public static SymbolLine generate(int startX, int fontSize) {
@@ -66,8 +75,7 @@ public class SymbolLine {
     }
 
     private void drawHead(Graphics g) {
-        Color symbolColor = new Color(174, 255, 174);
-        g.setColor(symbolColor);
+        g.setColor(HEAD_COLOR);
         String sym = genSymbol();
 
         g.drawString(sym, x, (int) (y));
@@ -75,8 +83,7 @@ public class SymbolLine {
     }
 
     private void drawBody(Graphics g) {
-        Color symbolColor = new Color(44, 128, 35);
-        g.setColor(symbolColor);
+        g.setColor(BODY_COLOR);
         for (int i = 0; i < positionedChars.length; i++) {
             if (positionedChars[i] != null && i != headPosition) {
                 CharInRow ch = positionedChars[i];
@@ -84,8 +91,7 @@ public class SymbolLine {
             }
         }
 
-        symbolColor = new Color(0, 255, 0);
-        g.setColor(symbolColor);
+        g.setColor(BRIGHT_BODY_COLOR);
         int ind = (positionedChars.length + headPosition - 1) % positionedChars.length;
         if (positionedChars[ind] != null) {
             CharInRow ch = positionedChars[ind];
@@ -148,6 +154,6 @@ public class SymbolLine {
     }
 
     public static int genRandomVerticalShift(int fontSize) {
-        return -rnd.nextInt(240) * fontSize;
+        return -rnd.nextInt(VERTICAL_POS_START_VARIANCE) * fontSize;
     }
 }
