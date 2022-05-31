@@ -26,11 +26,12 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>matrixchar.MatrixChars</mainClass>
+                            <mainClass>matrixchar.mvc.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
             </plugin>
         </plugins>
+        <finalName>MatrixSymbols</finalName>
     </build>
 </project>
