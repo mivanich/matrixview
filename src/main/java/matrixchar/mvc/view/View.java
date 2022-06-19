@@ -64,6 +64,6 @@ public class View implements Closeable {
 
     public static int getMaxLinesCount() {
         double screenWidth = Toolkit.getDefaultToolkit().getScreenSize().getWidth();
-        return (int) (screenWidth / (LineView.BASE_FONT_SIZE + LineView.ROW_MARGIN * 2));
+        return (int) (screenWidth / (LineView.BASE_FONT_SIZE + LineView.ROW_MARGIN));
     }
 }
